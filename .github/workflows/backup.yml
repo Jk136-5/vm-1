@@ -1,0 +1,42 @@
+name: backup
+
+on: [workflow_dispatch]
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      ########################################
+      # 📥 CHECKOUT REPOSITORY
+      ########################################
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      ########################################
+      # 📦 COMPRESS /bot WITH PASSWORD & PUSH
+      ########################################
+      - name: Compress /bot with password and push to repo
+        run: |
+          cd ${{ github.workspace }}
+          rm -f bot.zip
+
+          # Install zip if not present
+          sudo apt-get update
+          sudo apt-get install -y zip
+
+          # Compress /bot with password from secret
+          sudo zip -r -P "${{ secrets.PASSWORD }}" bot.zip /bot
+
+          # Create info.txt with backup details
+          echo "Backup completed on $(TZ='Asia/Dhaka' date '+%Y-%m-%d %H:%M:%S BST')" > info.txt
+          echo "Workflow: backup.yml" >> info.txt
+          echo "Archive: bot.zip (password protected)" >> info.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add bot.zip info.txt
+          git commit -m "backup: update bot archive (password protected) and info.txt"
+          git push
