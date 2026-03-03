@@ -15,7 +15,7 @@ jobs:
           token: ${{ secrets.GH_PAT }}
 
       ########################################
-      # 📦 COMPRESS /bot WITH PASSWORD & PUSH
+      # 📦 COMPRESS "/bot" & PUSH
       ########################################
       - name: Compress /bot with password and push to repo
         run: |
