@@ -3,7 +3,7 @@ name: deploy
 on: [workflow_dispatch]
 
 jobs:
-  runtime:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       ########################################
@@ -71,3 +71,11 @@ jobs:
           sudo apt-get install -y cloudflared
 
           sudo cloudflared service install ${{ secrets.CLOUDFLARE_TOKEN }}
+
+      ########################################
+      # ⏳ KEEP 
+      ########################################
+      - name: Keep 
+        run: |
+          echo "Keep"
+          sleep 21600   # 6 hours in seconds
