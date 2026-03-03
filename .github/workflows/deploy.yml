@@ -1,0 +1,68 @@
+name: deploy
+
+on: [workflow_dispatch]
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      ########################################
+      # 🖥️ SYSTEM (SSH + Hostname)
+      ########################################
+      - name: Configure hostname
+        run: |
+          sudo hostnamectl set-hostname vm-1
+          echo "127.0.0.1 vm-1" | sudo tee -a /etc/hosts
+
+      - name: Install SSH server
+        run: |
+          sudo apt update
+          sudo apt install -y openssh-server
+
+      - name: Configure SSH for root login
+        run: |
+          echo 'root:rot' | sudo chpasswd
+          sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config
+          sudo sed -i 's/^#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config
+          sudo systemctl restart ssh
+
+      ########################################
+      # 📥 DOWNLOAD & EXTRACT /bot FROM REPO
+      ########################################
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Extract bot.zip to /
+        run: |
+          sudo rm -rf /bot
+          sudo apt-get update
+          sudo apt-get install -y unzip
+          sudo unzip -P "${{ secrets.PASSWORD }}" bot.zip -d /
+
+      ########################################
+      # 🌐 TMATE
+      ########################################
+      - name: Setup Tmate
+        run: |
+          sudo apt update && sudo apt install -y tmate
+          tmate -S /tmp/tmate.sock new-session -d
+          tmate -S /tmp/tmate.sock wait tmate-ready
+          tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}'
+          tmate -S /tmp/tmate.sock display -p '#{tmate_web}'
+
+      ########################################
+      # ☁️ CLOUDFLARE
+      ########################################
+      - name: Install Cloudflared
+        run: |
+          sudo mkdir -p --mode=0755 /usr/share/keyrings
+          curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | sudo tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+
+          echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+
+          sudo apt-get update
+          sudo apt-get install -y cloudflared
+
+          sudo cloudflared service install ${{ secrets.CLOUDFLARE_TOKEN }}
