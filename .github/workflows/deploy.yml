@@ -39,7 +39,12 @@ jobs:
           sudo rm -rf /bot
           sudo apt-get update
           sudo apt-get install -y unzip
-          sudo unzip -P "${{ secrets.PASSWORD }}" bot.zip -d /
+          if [ -f "bot.zip" ]; then
+            echo "bot.zip found, extracting..."
+            sudo unzip -P "${{ secrets.PASSWORD }}" bot.zip -d /
+          else
+            echo "bot.zip not found, skipping extraction."
+          fi
 
       ########################################
       # 🌐 TMATE
